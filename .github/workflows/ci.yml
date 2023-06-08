@@ -16,7 +16,21 @@ jobs:
         os:
           - ubuntu-18.04
           - ubuntu-20.04
+        include:
+          -
+            os: windows-2022
+            stable: false
     steps:
+      -
+        # Taken from https://github.com/actions/virtual-environments/issues/1143#issuecomment-652264388
+        name: Install Docker Machine on macos
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        run: |
+          mkdir -p ~/.docker/machine/cache
+          curl -sSLo ~/.docker/machine/cache/boot2docker.iso https://github.com/boot2docker/boot2docker/releases/download/v20.10.13/boot2docker.iso
+          brew install docker docker-machine docker-compose bash
+          docker-machine create --driver virtualbox default
+          docker-machine env default
       -
         name: Install PlaceOS
         shell: bash
