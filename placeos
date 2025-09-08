@@ -164,6 +164,7 @@ Arguments:
     --domain DOMAIN         Domain to configure. [default: localhost:8443]
     --application APP       Application to configure. [default: backoffice]
     --analytics             Set-up analytics stack, including MQTT & InfluxDB & Chronograf
+    --no-pull               Skip pulling Docker images (for local development).
     -v, --verbose           Write logs to STDOUT in addition to the log file.
     -h, --help              Display this message.
 EOF
@@ -174,6 +175,7 @@ start_environment() (
     hard_reset=false
     enable_analytics=false
     enable_lgtm=false
+    no_pull=false
     email_argument=""
     password_argument=""
     domain_argument=""
@@ -214,6 +216,9 @@ start_environment() (
             ;;
         --lgtm)
             enable_lgtm=true
+            ;;
+        --no-pull)
+            no_pull=true
             ;;
         -v | --verbose)
             VERBOSE="true"
@@ -310,11 +315,12 @@ start_environment() (
         "Generating secrets..." \
         "Failed to generate secrets."
 
-
-    run_or_abort \
-        "docker compose --env-file='${EMPTY_FILE}' --project-directory='${base_path}' ${PROFILES} pull --quiet" \
-        "Pulling images..." \
-        "Failed to pull images."
+    if [ ${no_pull} == "false" ]; then
+        run_or_abort \
+            "docker compose --env-file='${EMPTY_FILE}' --project-directory='${base_path}' ${PROFILES} pull --quiet" \
+            "Pulling images..." \
+            "Failed to pull images."
+    fi
 
     [ ${hard_reset} == "true" ] && hard_reset
 
