@@ -8,7 +8,6 @@ networks:
         - subnet: 172.31.231.0/24
 
 volumes:
-  elastic-data:
   influx-data:
   nginx-data:
   postgres-data:
@@ -51,12 +50,6 @@ x-jwt-public-key-env: &jwt-public-key-env .env.public_key
 
 x-secret-key-env: &secret-key-env .env.secret_key
 
-x-elastic-client-env: &elastic-client-env
-  ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
-  ELASTIC_PORT: ${ELASTIC_PORT:-9200}
-  ES_HOST: ${ELASTIC_HOST:-elastic}
-  ES_PORT: ${ELASTIC_PORT:-9200}
-
 x-influxdb-api-key: &influxdb-api-key .env.influxdb
 
 x-influxdb-client-env: &influxdb-client-env
@@ -83,12 +76,6 @@ x-postgresdb-client-env: &postgresdb-client-env
   PG_PASSWORD: ${POSTGRES_PASSWORD:-password}
   PG_DATABASE: ${PG_DB:-placeos}
   PG_DATABASE_URL: ${PG_DATABASE_URL:-postgresql://placeos:development@postgres:5432/placeos}
-
-x-search-ingest-client-env: &search-ingest-client-env
-  PLACE_SEARCH_INGEST_URI: ${PLACE_SEARCH_INGEST_URI:-http://search-ingest:3000}
-  RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
-
-x-search-ingest-service: &search-ingest-service ${PLACE_SEARCH_INGEST_IMAGE:-search-ingest}
 
 x-smtp-client-env: &smtp-client-env
   SMTP_SERVER: ${SMTP_SERVER:-}
@@ -118,15 +105,13 @@ services:
     <<: [*std-network,*std-logging, *cap-drop]
     depends_on:
       - auth
-      - elastic
       - redis
       - postgres
-      - search-ingest
     env_file:
       - *jwt-public-key-env
       - *secret-key-env
     environment:
-      <<: [*deployment-env,*opentelemetry-env,*elastic-client-env,*place-loader-client-env,*redis-client-env,*postgresdb-client-env,*search-ingest-client-env]
+      <<: [*deployment-env,*opentelemetry-env,*place-loader-client-env,*redis-client-env,*postgresdb-client-env]
     deploy:
       resources:
         limits:
@@ -292,11 +277,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      #- search-ingest
     env_file:
       - *secret-key-env
     environment:
-      <<: [*deployment-env,*opentelemetry-env,*postgresdb-client-env,*elastic-client-env]
+      <<: [*deployment-env,*opentelemetry-env,*postgresdb-client-env]
       # User/Application Configuration
       PLACE_DOMAIN: ${PLACE_DOMAIN:-localhost:8443}
       PLACE_APPLICATION: ${PLACE_APPLICATION:-backoffice}
@@ -305,24 +289,6 @@ services:
       PLACE_EMAIL: ${PLACE_EMAIL:-support@place.tech}
       PLACE_PASSWORD: ${PLACE_PASSWORD:-development}
       PLACE_TLS: "${PLACE_TLS:-true}"
-
-  search-ingest: # PostgreSQL to Elasticsearch Service
-    image: ${PLACE_SEARCH_INGEST_REGISTRY:-docker.io}/placeos/${PLACE_SEARCH_INGEST_IMAGE:-search-ingest}:${PLACE_SEARCH_INGEST_TAG:-latest}
-    restart: always
-    container_name: *search-ingest-service
-    hostname: *search-ingest-service
-    <<: [*std-network,*std-logging,*cap-drop]
-    depends_on:
-      elastic:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    environment:
-      <<: [*deployment-env,*opentelemetry-env,*postgresdb-client-env,*elastic-client-env]
-    deploy:
-      resources:
-        limits:
-          memory: "250m"
 
   dispatch: # Engine driver server registration and data routing
     image: ${PLACE_DISPATCH_REGISTRY:-docker.io}/placeos/dispatch:${PLACE_DISPATCH_TAG:-latest}
@@ -364,29 +330,6 @@ services:
       resources:
         limits:
           memory: "4g"
-
-  elastic:
-    image: elasticsearch:${ELASTIC_VERSION:-8.14.3}
-    restart: always
-    container_name: elastic
-    hostname: elastic
-    healthcheck:
-      test: curl --silent --fail localhost:9200/_cat/health
-      start_period: 1m
-    <<: [*std-network,*std-logging]
-    volumes:
-      - type: volume
-        source: elastic-data
-        target: /usr/share/elasticsearch/data
-    environment:
-      bootstrap.memory_lock: "true"
-      cluster.routing.allocation.disk.threshold_enabled: "false"
-      discovery.type: single-node
-      TZ: $TZ
-    deploy:
-      resources:
-        limits:
-          memory: "2g"
 
   influxdb:
     image: influxdb:${INFLUXDB_IMAGE_TAG:-2.0.8-alpine}
