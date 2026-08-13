@@ -77,7 +77,7 @@ These will need to be installed prior to installation:
 ### MacOS
 
 If using [Docker Desktop for Mac](https://docs.docker.com/desktop/mac/install/), the default memory allocation of 2GB is insufficient for
-running Elasticsearch in addition to the set of PlaceOS services.
+running the full set of PlaceOS services.
 Bumping the resource limit to 4GB should be sufficient.
 
 ## Configuration

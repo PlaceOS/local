@@ -140,11 +140,6 @@ hard_reset() (
         "Failed to drop PostgreSQL tables."
 
     run_or_abort \
-        "${base_path}/scripts/run-sam-task drop:elastic" \
-        "Dropping Elasticsearch indices..." \
-        "Failed to drop Elasticsearch indices."
-
-    run_or_abort \
         "docker compose --env-file='${EMPTY_FILE}' --project-directory='${base_path}' restart nginx" \
         "Restarting nginx..." \
         "Failed to restart nginx." \
