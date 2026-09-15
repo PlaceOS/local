@@ -118,7 +118,7 @@ services:
           memory: "2g"
 
   auth: # Authentication Service
-    image: ${PLACE_AUTH_REGISTRY:-docker.io}/placeos/auth:${PLACE_AUTH_TAG:-latest}
+    image: ${PLACE_AUTH_REGISTRY:-docker.io}/placeos/auth.cr:${PLACE_AUTH_TAG:-latest}
     restart: always
     container_name: auth
     hostname: auth
