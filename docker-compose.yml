@@ -65,6 +65,10 @@ x-opentelemetry-env: &opentelemetry-env
 x-place-loader-client-env: &place-loader-client-env
   PLACE_LOADER_URI: ${PLACE_LOADER_URI:-http://frontend-loader:3000}
 
+x-browser-client-env: &browser-client-env
+  BROWSER_URI: ${BROWSER_URI:-http://browser:3000}
+  # token: rest-api falls back to PLACE_SERVER_SECRET from .env.secret_key
+
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
@@ -111,7 +115,7 @@ services:
       - *jwt-public-key-env
       - *secret-key-env
     environment:
-      <<: [*deployment-env,*opentelemetry-env,*place-loader-client-env,*redis-client-env,*postgresdb-client-env]
+      <<: [*deployment-env,*opentelemetry-env,*place-loader-client-env,*redis-client-env,*postgresdb-client-env,*browser-client-env]
     deploy:
       resources:
         limits:
@@ -304,6 +308,25 @@ services:
       resources:
         limits:
           memory: "250m"
+
+  browser: # Headless Chromium (browserless) used by rest-api for web page screenshots
+    image: ghcr.io/browserless/chromium:${BROWSER_IMAGE_TAG:-latest}
+    restart: always
+    container_name: browser
+    hostname: browser
+    # no published ports: only reachable by services on the placeos network
+    <<: [*std-network,*std-logging]
+    environment:
+      TZ: $TZ
+      # same secret as dispatch; exported (alone) by the `placeos` script
+      TOKEN: ${PLACE_SERVER_SECRET:-}
+      CONCURRENT: ${BROWSER_CONCURRENT:-5}
+      QUEUED: ${BROWSER_QUEUED:-10}
+      TIMEOUT: ${BROWSER_TIMEOUT:-60000}
+    deploy:
+      resources:
+        limits:
+          memory: "2g"
 
   # Resources
 

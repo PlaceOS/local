@@ -42,6 +42,18 @@ ensure_env_files() (
 # This functions mutates the outer scope, hence {} are used
 load_environment () {
     eval "$("${base_path}/scripts/shdotenv" --dialect ruby --env "${base_path}/.env")"
+    export_browser_token
+}
+
+# The browser service authenticates with the same secret as dispatch. Only this
+# one value is exported for compose to interpolate, so the rest of
+# .env.secret_key (e.g. the JWT signing key) never enters the browser container.
+export_browser_token () {
+    local secrets_file="${base_path}/.env.secret_key"
+    [[ -f "$secrets_file" ]] || return 0
+    PLACE_SERVER_SECRET="$(sed -n 's/^PLACE_SERVER_SECRET=//p' "$secrets_file" | head -n1)"
+    [[ -n "$PLACE_SERVER_SECRET" ]] || PLACE_SERVER_SECRET="$(sed -n 's/^SERVER_SECRET=//p' "$secrets_file" | head -n1)"
+    export PLACE_SERVER_SECRET
 }
 
 # Path of directory containing the script
@@ -309,6 +321,7 @@ start_environment() (
         "${base_path}/scripts/generate-secrets" \
         "Generating secrets..." \
         "Failed to generate secrets."
+    export_browser_token
 
     if [ ${no_pull} == "false" ]; then
         run_or_abort \
