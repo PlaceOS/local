@@ -3,26 +3,21 @@ on:
   push:
     paths:
       - docker-compose.yml
+      - scripts/service-graph.py
       - .github/workflows/render-compose.yml
 jobs:
   render:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Install Graphviz
+        run: sudo apt-get update -q && sudo apt-get install -y -q graphviz
       - name: Generate graph
+        shell: bash # fail the step if any command in the pipeline fails
         run: |
-          chmod -R 777 images
-          docker run \
-             --network none \
-             --rm \
-             -v $(pwd):/input:rw \
-             pmsipilot/docker-compose-viz \
-                render --force \
-                -m image \
-                --horizontal \
-                --no-volumes --no-networks \
-                -o ./images/service-graph.png \
-                docker-compose.yml
+          docker compose --profile '*' config --format json --no-interpolate \
+            | scripts/service-graph.py \
+            | dot -Tpng -Gdpi=110 -o images/service-graph.png
       - name: Commit and push
         shell: bash
         run: |
