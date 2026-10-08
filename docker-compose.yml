@@ -256,6 +256,7 @@ services:
     <<: [*std-network,*std-logging,*cap-drop]
     depends_on:
       - rest-api
+      - redis
       - postgres
     env_file:
       - *jwt-public-key-env
