@@ -407,7 +407,7 @@ services:
           memory: "250m"
 
   mosquitto:
-    image: iegomez/mosquitto-go-auth:${MOSQUITTO_IMAGE_TAG:-latest}
+    image: ghcr.io/lhns/mosquitto-go-auth:${MOSQUITTO_IMAGE_TAG:-latest}
     profiles:
       - analytics
     restart: always
